@@ -1,0 +1,19 @@
+{
+  "name": "usage-pilot",
+  "version": "1.0.0",
+  "description": "One quiet line above the prompt: usage limits, context and cache timer, with Compact, Keep warm and Handoff. Asks before an expensive send.",
+  "author": {
+    "name": "KhaNomThai",
+    "url": "https://github.com/KhaNomThai"
+  },
+  "license": "MIT",
+  "keywords": [
+    "usage",
+    "rate-limit",
+    "context",
+    "prompt-cache",
+    "handoff"
+  ],
+  "types": "./types/index.d.ts",
+  "repository": "https://github.com/KhaNomThai/my-mods"
+}

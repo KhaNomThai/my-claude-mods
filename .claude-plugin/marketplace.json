@@ -1,0 +1,15 @@
+{
+  "name": "my-mods",
+  "owner": {
+    "name": "KhaNomThai"
+  },
+  "description": "Personal Claude Code mods",
+  "plugins": [
+    {
+      "name": "usage-pilot",
+      "source": "./plugins/usage-pilot",
+      "description": "One quiet line above the prompt: usage limits, context and cache timer, with Compact, Keep warm and Handoff. Asks before an expensive send.",
+      "version": "1.0.0"
+    }
+  ]
+}
