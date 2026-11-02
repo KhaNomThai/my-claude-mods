@@ -41,9 +41,9 @@ All thresholds, keep-warm limits, colours and prices live in `hooks/config.ts`. 
 At the prompt of a Claude Code terminal session:
 
 ```
-/plugin install usage-pilot --marketplace KhaNomThai/my-mods
+/plugin install usage-pilot --marketplace KhaNomThai/my-claude-mods
 ```
 
-Or from a shell: `claude plugin install usage-pilot --marketplace KhaNomThai/my-mods`
+Or from a shell: `claude plugin install usage-pilot --marketplace KhaNomThai/my-claude-mods`
 
 Needs `python3` on the PATH to read the cache length from the chat log.

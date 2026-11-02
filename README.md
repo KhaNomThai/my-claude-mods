@@ -1,4 +1,4 @@
-# my-mods
+# my-claude-mods
 
 Personal Claude Code mods.
 
@@ -11,7 +11,7 @@ Personal Claude Code mods.
 At the prompt of a Claude Code terminal session:
 
 ```
-/plugin install usage-pilot --marketplace KhaNomThai/my-mods
+/plugin install usage-pilot --marketplace KhaNomThai/my-claude-mods
 ```
 
 Answer `y` to add the marketplace, then pick a scope (user = every project).
@@ -19,7 +19,7 @@ Answer `y` to add the marketplace, then pick a scope (user = every project).
 From a shell:
 
 ```sh
-claude plugin install usage-pilot --marketplace KhaNomThai/my-mods
+claude plugin install usage-pilot --marketplace KhaNomThai/my-claude-mods
 ```
 
 ## Developing
@@ -28,5 +28,5 @@ Clone the repository, then use the clone as the marketplace so edits apply with 
 
 ```sh
 claude plugin marketplace add <path to clone>
-claude plugin install usage-pilot@my-mods
+claude plugin install usage-pilot@my-claude-mods
 ```
