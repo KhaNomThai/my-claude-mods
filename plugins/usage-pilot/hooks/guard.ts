@@ -86,10 +86,7 @@ Full paths, most important first, one line each on why.
 ## Next step
 The single next thing to do.`
 
-const handoffDir = () => `${rt.home}/.claude/handoffs`
-const pendingPath = () => `${handoffDir()}/.usage-pilot-pending`
-
-/** Writes a handoff of this chat, then readies /clear; the new chat finds it in its prompt box. */
+/** Writes a handoff of this chat (kept in memory, never saved), then readies /clear; the new chat finds it in its prompt box. */
 export async function handoff($: EngineInterface, message = '') {
   if (rt.handingOff) return
   if (rt.working) return toast($, 'Wait for Claude to finish before handing off')
@@ -100,16 +97,11 @@ export async function handoff($: EngineInterface, message = '') {
     const r = await $.model.fork({ prompt: HANDOFF_PROMPT })
     if (!r.isAnswered) throw new Error(r.reason)
     const text = r.text.trim().replace(/^```(?:markdown|md)?\n([\s\S]*)\n```$/, '$1')
-    const now = await $.clock.now()
-    const stamp = new Date(now).toISOString().slice(0, 16).replace(/[:T]/g, '-')
-    await $.process.run(['mkdir', '-p', handoffDir()])
-    const path = `${handoffDir()}/${stamp}-handoff.md`
-    await $.fs.write(path, `${text}\n`)
-    await $.fs.write(pendingPath(), JSON.stringify({ path, at: now, message }))
+    rt.pending = { text, at: await $.clock.now(), message }
     const { isCopied } = await $.ui.copy({ text }).catch(() => ({ isCopied: false }))
     await $.prompt.fill({ text: '/clear' }).catch(() => undefined)
     $.ui.log(
-      `✓ Handoff written: ${path.replace(rt.home, '~')}${isCopied ? ' (copied to clipboard)' : ''}\n` +
+      `✓ Handoff written${isCopied ? ' (copied to clipboard)' : ''}\n` +
         '  Press Enter to /clear — the new chat gets the handoff in its prompt box; press Enter again to start',
     )
   } catch (err) {
@@ -123,19 +115,13 @@ export async function handoff($: EngineInterface, message = '') {
 
 /** At a session start (after /clear): puts a waiting handoff into the prompt box. */
 export async function deliverPending($: EngineInterface) {
-  const path = pendingPath()
-  if (!(await $.fs.exists(path))) return
-  const { path: file, at, message } = JSON.parse(String(await $.fs.read(path))) as { path: string; at: number; message?: string }
-  if ((await $.clock.now()) - at > HANDOFF_TTL || !(await $.fs.exists(file))) {
-    await $.process.run(['rm', '-f', path])
-    return
-  }
-  const body = String(await $.fs.read(file)).trim()
-  const text = message ? `${body}\n\n---\nMessage to continue with:\n${message}` : body
+  const p = rt.pending
+  rt.pending = null
+  if (!p || (await $.clock.now()) - p.at > HANDOFF_TTL) return
+  const text = p.message ? `${p.text}\n\n---\nMessage to continue with:\n${p.message}` : p.text
   // The prompt box may not be mounted yet right after /clear.
   for (let i = 0; i < 20; i += 1) {
     if ((await $.prompt.fill({ text })).isFilled) {
-      await $.process.run(['rm', '-f', path])
       toast($, 'Handoff is in the prompt box — press Enter to start')
       return
     }

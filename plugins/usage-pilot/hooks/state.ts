@@ -9,7 +9,8 @@ const WARM = { plugin: 'usage-pilot', key: 'warm' } as const
 /** What this chat's module knows between hooks. A reload starts it over; $.state keeps the rest. */
 export const rt = {
   sid: '',
-  home: '',
+  /** A handoff waiting for the /clear it readied. Memory only: nothing is saved to disk. */
+  pending: null as { text: string; at: number; message: string } | null,
   /** A main-chat turn is running. */
   working: false,
   pinging: false,

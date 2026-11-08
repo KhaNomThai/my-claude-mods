@@ -18,7 +18,7 @@ One quiet line above the Claude Code prompt, and a cost check before an expensiv
 | --- | --- | --- |
 | `1` | | Compact the conversation |
 | `2` | `/keepwarm [on\|off]` | A small background ping about 45 s before the cache goes cold. Stops after 2 hours, 30 pings, 3 failures in a row, or when you send a message |
-| `3` | `/handoff` | Writes a handoff of the chat, saves it to `~/.claude/handoffs/`, copies it, and readies `/clear`; the new chat finds it in its prompt box. The key shows at 200k+ context |
+| `3` | `/handoff` | Writes a handoff of the chat, copies it, and readies `/clear` (nothing is saved to disk); the new chat finds it in its prompt box. The key shows at 200k+ context |
 | | `/pilot` | Everything in detail: reset times, cost per message, cache length, keep warm |
 
 ## The cost check

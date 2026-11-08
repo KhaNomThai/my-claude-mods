@@ -14,7 +14,6 @@ import { startWarm, stopWarm, warmTick } from './warm'
 export const register: Register = on => {
   // Once per process: commands and the clock. Per-chat state is startChat's.
   on('session.start', async ($, e, next) => {
-    rt.home = $.plugin.root.split('/.claude/')[0] ?? ''
     void (async () => startChat($, { sessionId: await $.session.id(), source: 'startup' }))().catch(() => undefined)
 
     await $.command.register({ name: 'pilot', description: 'usage-pilot: usage limits, context, cache and keep warm in detail', immediate: true })
