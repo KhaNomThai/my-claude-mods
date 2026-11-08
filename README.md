@@ -30,3 +30,11 @@ Clone the repository, then use the clone as the marketplace so edits apply with 
 claude plugin marketplace add <path to clone>
 claude plugin install usage-pilot@my-claude-mods
 ```
+
+## Versions
+
+A git hook bumps the patch version of each plugin a commit touches (in its `plugin.json` and in `marketplace.json`). For a minor or major bump, change `plugin.json` by hand; the hook keeps `marketplace.json` in step. Enable it once per clone:
+
+```
+git config core.hooksPath .githooks
+```
