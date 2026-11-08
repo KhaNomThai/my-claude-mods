@@ -15,7 +15,9 @@ export async function statusCard($: EngineInterface): Promise<string> {
 
   for (const l of m.limits) {
     const reset = l.resetsAt ? Date.parse(l.resetsAt) - now : NaN
-    out.push(`${limitLabel(l.kind).padEnd(6)} ${String(Math.round(l.percent)).padStart(3)}%${Number.isFinite(reset) ? `   resets in ${duration(reset)}` : ''}`)
+    // Past its reset the old reading is stale, as on the band.
+    const p = reset <= 0 ? 0 : l.percent
+    out.push(`${limitLabel(l.kind).padEnd(6)} ${String(Math.round(p)).padStart(3)}%${reset > 0 ? `   resets in ${duration(reset)}` : reset <= 0 ? '   reset, waiting for a new reading' : ''}`)
   }
   if (!m.limits.length) out.push('limits  no reading yet (shown after the first reply)')
 

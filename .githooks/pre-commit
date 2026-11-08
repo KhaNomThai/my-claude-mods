@@ -8,17 +8,29 @@ import json, os, re, subprocess, sys
 MARKET = '.claude-plugin/marketplace.json'
 PLAIN = re.compile(r'(\d+)\.(\d+)\.(\d+)$')
 
-def git(*a):
-    return subprocess.run(['git', *a], capture_output=True, text=True, check=True).stdout
+def git(*a, input=None):
+    return subprocess.run(['git', *a], capture_output=True, text=True, check=True, input=input).stdout
 
-def load(path):
+def staged(path):
+    return json.loads(git('show', f':{path}'))
+
+def save(path, change):
+    """Applies `change` to the staged copy and to the working file; unstaged edits stay unstaged."""
+    data = staged(path)
+    change(data)
+    mode = git('ls-files', '-s', path).split()[0]
+    blob = git('hash-object', '-w', '--stdin', input=json.dumps(data, indent=2, ensure_ascii=False) + '\n').strip()
+    git('update-index', '--cacheinfo', f'{mode},{blob},{path}')
     with open(path) as f:
-        return json.load(f)
-
-def save(path, data):
+        work = json.load(f)
+    change(work)
     with open(path, 'w') as f:
-        f.write(json.dumps(data, indent=2, ensure_ascii=False) + '\n')
-    git('add', path)
+        f.write(json.dumps(work, indent=2, ensure_ascii=False) + '\n')
+
+def amending():
+    # shortcut: reads git's own command line (git runs this hook directly); a GUI that amends without --amend is not seen.
+    r = subprocess.run(['ps', '-o', 'args=', '-p', str(os.getppid())], capture_output=True, text=True)
+    return '--amend' in r.stdout.split()
 
 def next_version(head, cur):
     h, c = PLAIN.match(head), PLAIN.match(cur)
@@ -36,43 +48,79 @@ def next_version(head, cur):
     return cur
 
 def main():
-    staged = git('diff', '--cached', '--name-only').split()
-    plugins = sorted({m.group(1) for f in staged if (m := re.match(r'plugins/([^/]+)/', f))})
+    # An amend compares with the commit before the one being replaced, so it is not bumped twice.
+    base = 'HEAD^' if amending() else 'HEAD'
+    files = git('diff', '--cached', '--name-only', base).splitlines()
+    plugins = sorted({m.group(1) for f in files if (m := re.match(r'plugins/([^/]+)/', f))})
     if not plugins:
         return
-    market = load(MARKET)
-    market_changed = False
+    market = staged(MARKET)
+    news = {}
     for name in plugins:
         pj = f'plugins/{name}/.claude-plugin/plugin.json'
-        if not os.path.exists(pj):
-            continue  # the plugin is being removed
         try:
-            head = json.loads(git('show', f'HEAD:{pj}'))['version']
+            head = json.loads(git('show', f'{base}:{pj}'))['version']
         except subprocess.CalledProcessError:
             continue  # a new plugin: its first version is whatever it was written with
-        data = load(pj)
-        cur = data['version']
+        try:
+            cur = staged(pj)['version']
+        except subprocess.CalledProcessError:
+            continue  # the plugin is being removed
         new = next_version(head, cur)
         if new != cur:
-            data['version'] = new
-            save(pj, data)
+            save(pj, lambda d, new=new: d.update(version=new))
             print(f'pre-commit: {name} {cur} -> {new}')
         entry = next((p for p in market['plugins'] if p.get('name') == name), None)
         if entry is None:
             print(f'pre-commit: {name} is not in {MARKET}', file=sys.stderr)
         elif entry.get('version') != new:
-            entry['version'] = new
-            market_changed = True
-    if market_changed:
-        save(MARKET, market)
+            news[name] = new
+    if news:
+        def sync(d):
+            for p in d['plugins']:
+                if p.get('name') in news:
+                    p['version'] = news[p['name']]
+        save(MARKET, sync)
+
+def selftest():
+    cases = [('1.1.0', '1.1.0', '1.1.1'), ('1.1.1', '1.2.1', '1.2.0'), ('1.2.0', '2.2.0', '2.0.0'),
+             ('2.0.0', '2.0.5', '2.0.5'), ('1.0.0', '1.1.0-beta', '1.1.0-beta'),
+             ('1.1.0-beta', '1.1.0-beta', '1.1.0-beta'), ('1.1.0-beta', '1.1.0', '1.1.0')]
+    for head, cur, want in cases:
+        assert next_version(head, cur) == want, (head, cur, next_version(head, cur))
+
+    # A real repo: plain bump, unstaged edits kept out, amend not bumped twice.
+    import shutil, tempfile
+    hook = os.path.abspath(__file__)
+    with tempfile.TemporaryDirectory() as d:
+        os.chdir(d)
+        run = lambda *a: subprocess.run(a, capture_output=True, text=True, check=True).stdout
+        pj = 'plugins/p/.claude-plugin/plugin.json'
+        os.makedirs(os.path.dirname(pj)); os.makedirs('.githooks'); os.makedirs('.claude-plugin')
+        shutil.copy(hook, '.githooks/pre-commit')
+        write = lambda path, data: open(path, 'w').write(json.dumps(data, indent=2) + '\n')
+        write(pj, {'name': 'p', 'version': '1.0.0'})
+        write(MARKET, {'plugins': [{'name': 'p', 'version': '1.0.0'}]})
+        open('plugins/p/a', 'w').write('1')
+        run('git', 'init', '-q'); run('git', 'config', 'user.email', 't@t'); run('git', 'config', 'user.name', 't')
+        run('git', 'add', '.'); run('git', 'commit', '-qm', 'init')
+        run('git', 'config', 'core.hooksPath', '.githooks')
+        version = lambda ref, path=pj: json.loads(run('git', 'show', f'{ref}:{path}'))['version']
+
+        open('plugins/p/a', 'w').write('2')
+        write(pj, {'name': 'p', 'version': '1.0.0', 'note': 'unstaged'})
+        run('git', 'add', 'plugins/p/a'); run('git', 'commit', '-qm', 'two')
+        assert version('HEAD') == '1.0.1' and 'note' not in run('git', 'show', f'HEAD:{pj}')
+        assert json.load(open(pj)) == {'name': 'p', 'version': '1.0.1', 'note': 'unstaged'}
+        assert json.loads(run('git', 'show', f'HEAD:{MARKET}'))['plugins'][0]['version'] == '1.0.1'
+
+        open('plugins/p/a', 'w').write('3')
+        run('git', 'add', 'plugins/p/a'); run('git', 'commit', '-q', '--amend', '-m', 'two again')
+        assert version('HEAD') == '1.0.1', version('HEAD')
 
 if __name__ == '__main__':
     if sys.argv[1:] == ['--test']:
-        cases = [('1.1.0', '1.1.0', '1.1.1'), ('1.1.1', '1.2.1', '1.2.0'), ('1.2.0', '2.2.0', '2.0.0'),
-                 ('2.0.0', '2.0.5', '2.0.5'), ('1.0.0', '1.1.0-beta', '1.1.0-beta'),
-                 ('1.1.0-beta', '1.1.0-beta', '1.1.0-beta'), ('1.1.0-beta', '1.1.0', '1.1.0')]
-        for head, cur, want in cases:
-            assert next_version(head, cur) == want, (head, cur, next_version(head, cur))
+        selftest()
         print('ok')
     else:
         main()

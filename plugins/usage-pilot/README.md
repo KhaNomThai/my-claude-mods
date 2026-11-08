@@ -8,7 +8,7 @@ One quiet line above the Claude Code prompt, and a cost check before an expensiv
 
 ## What it shows
 
-- **5h / 7d**: how much of each usage-limit window is used, and in brackets the time until it resets. Green, yellow from 60%, red from 85%.
+- **5h / 7d**: how much of each usage-limit window is used, and in brackets the time until it resets. Once the reset time passes it shows 0% until the next reading. Green, yellow from 60%, red from 85%.
 - **ctx**: how full the context window is, with tokens used / window size.
 - **cache**: time left before the prompt cache goes cold (5 min or 1 hour, read from the chat's own log). `●` while Claude is replying, `cold` once it has expired, `♨` while keep warm is on.
 
@@ -18,7 +18,7 @@ One quiet line above the Claude Code prompt, and a cost check before an expensiv
 | --- | --- | --- |
 | `1` | | Compact the conversation |
 | `2` | `/keepwarm [on\|off]` | A small background ping about 45 s before the cache goes cold. Stops after 2 hours, 30 pings, 3 failures in a row, or when you send a message |
-| `3` | `/handoff` | Writes a handoff of the chat, copies it, and readies `/clear` (nothing is saved to disk); the new chat finds it in its prompt box. The key shows at 200k+ context |
+| `3` | `/handoff` | Writes a handoff of the chat, copies it, and readies `/clear` (nothing is saved to disk); the new chat finds it in its prompt box. The key shows at 200k+ context. The waiting handoff is lost if you `/reload-plugins` or quit before the `/clear`, or after 30 minutes; paste it from the clipboard then |
 | | `/pilot` | Everything in detail: reset times, cost per message, cache length, keep warm |
 
 ## The cost check
