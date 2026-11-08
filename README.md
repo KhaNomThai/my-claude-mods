@@ -33,7 +33,7 @@ claude plugin install usage-pilot@my-claude-mods
 
 ## Versions
 
-A git hook bumps the patch version of each plugin a commit touches (in its `plugin.json` and in `marketplace.json`). For a minor or major bump, change `plugin.json` by hand: the hook sets the numbers after it to 0 (1.1.3 → 1.2.0) and keeps `marketplace.json` in step. Enable it once per clone:
+A git hook bumps the patch version of each plugin a commit touches (in its `plugin.json` and in `marketplace.json`). For a minor or major bump, change `plugin.json` by hand: the hook sets the numbers after it to 0 (1.1.3 → 1.2.0) and keeps `marketplace.json` in step. A pre-release such as `1.2.0-beta` is never bumped. Enable it once per clone:
 
 ```
 git config core.hooksPath .githooks
