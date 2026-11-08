@@ -2,7 +2,7 @@
 import type { On } from 'claude-code'
 
 import { BIG_ASK_AT, COLOR } from './config'
-import { clock, levelColor, limitLabel, pie, tokens } from './format'
+import { clock, duration, levelColor, limitLabel, pie, tokens } from './format'
 import { getMeter, getWarm, rt, toast } from './state'
 import { compact } from './usage'
 import { handoff } from './guard'
@@ -20,12 +20,18 @@ export function band(on: On) {
   const { Box, Text, Button } = $.ui.resolve(e)
   const busy = rt.working || e.props.isWorking
 
-  const parts: Part[] = m.limits.map(l => ({
-    key: l.kind,
-    label: limitLabel(l.kind),
-    value: `${pie(l.percent)} ${Math.round(l.percent)}%`,
-    color: levelColor(l.percent),
-  }))
+  const parts: Part[] = m.limits.map(l => {
+    const left = l.resetsAt ? Date.parse(l.resetsAt) - m.now : NaN
+    // Past its reset the old reading is stale: the window is empty until the next refresh.
+    const p = left <= 0 ? 0 : l.percent
+    return {
+      key: l.kind,
+      label: limitLabel(l.kind),
+      value: `${pie(p)} ${Math.round(p)}%`,
+      color: levelColor(p),
+      extra: left > 0 ? ` (${duration(left)})` : undefined,
+    }
+  })
 
   parts.push(
     m.note

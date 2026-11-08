@@ -3,12 +3,12 @@
 One quiet line above the Claude Code prompt, and a cost check before an expensive send.
 
 ```
-5h ○ 5%  ·  7d ◑ 65%  ·  ctx ○ 4% 41k/1M  ·  cache 4:12      1: Compact  2: Warm
+5h ○ 5% (3h12m)  ·  7d ◑ 65% (2d4h)  ·  ctx ○ 4% 41k/1M  ·  cache 4:12      1: Compact  2: Warm
 ```
 
 ## What it shows
 
-- **5h / 7d**: how much of each usage-limit window is used. Green, yellow from 60%, red from 85%.
+- **5h / 7d**: how much of each usage-limit window is used, and in brackets the time until it resets. Green, yellow from 60%, red from 85%.
 - **ctx**: how full the context window is, with tokens used / window size.
 - **cache**: time left before the prompt cache goes cold (5 min or 1 hour, read from the chat's own log). `●` while Claude is replying, `cold` once it has expired, `♨` while keep warm is on.
 
